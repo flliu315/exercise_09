@@ -7,13 +7,11 @@ library(caret)
 rm(list = ls())
 data <- read.csv("data/npcl.csv")
 str(data)
-data_raw <- data[,-1]
-library(tidyverse)
+data_raw <- data[,-c(1,13)]
 data_raw <- data_raw %>% 
-  mutate(loss_degree = loss_rate > 0.4) %>%
-  select(-loss_rate) 
+  mutate(loss_degree = loss_rate > 0.4) %>% dplyr::select(-loss_rate) 
 y <- ifelse (data_raw$loss_degree == TRUE, "serious", "normal")
-data_use <- cbind(data_raw,y) %>% select(-loss_degree)
+data_use <- cbind(data_raw,y) %>% dplyr::select(-loss_degree)
 
 head(data_use)
 write.csv(data_use, file = "data/data_use.csv")
@@ -42,18 +40,23 @@ head(data_clean)
 
 ##split dataset
 set.seed(100)
-train_idx <- createDataPartition(data_use$y, p=0.8, list=FALSE)
-train <- data_use[train_idx,]
-test <- data_use[-train_idx,]
+train_idx <- createDataPartition(data_raw$loss_degree, p=0.8, list=FALSE)
+training <- data_raw[train_idx,]
+test <- data_raw[-train_idx,]
 
 ##estimate the importance of predictors
 #visualize feature importance
-x = as.matrix(train[, 1:11])
-y = as.factor(train$y)
+x = as.matrix(training[, 1:11])
+y = as.factor(training$loss_degree)
 
 featurePlot(x, y, plot = "box",
             strip=strip.custom(par.strip.text=list(cex=.7)),
-            scales = list(x = list(draw=FALSE), 
+            scales = list(x = list(relation = "free"), 
+                          y = list(relation="free")))
+
+featurePlot(x, y, plot = "density",
+            strip=strip.custom(par.strip.text=list(cex=.7)),
+            scales = list(x = list(relation="free"), 
                           y = list(relation="free")))
 
 #importance of features
@@ -70,8 +73,9 @@ lmProfile
 
 ##build a rf model and calculat feature importance
 set.seed(100)
-rf_fit <- train(y ~ ., 
-                    data = train, 
+rf_fit <- train(as.factor(loss_degree) ~ ., 
+                    data = training,
+                 
                     method = "rf")
 rf_fit
 plot(rf_fit)

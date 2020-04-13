@@ -1,0 +1,128 @@
+---
+title: "report"
+author: "FL"
+date: "2020/4/13"
+output: pdf_document
+---
+This document describes how to use caret package to build models.
+
+remove everything from current R environment
+
+```{r}
+rm(list = ls())
+```
+
+install and load caret package for building models
+
+```{r}
+install.packages("caret", dependencies = TRUE,
+                 INSTALL_opts = '--no-lock')
+library(caret)
+```
+
+Load and check a dataset
+
+```{r}
+data <- read.csv("D:/caret_learning/data/npcl11.csv")
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+head(data)
+```
+
+Transform and save data
+
+```{r}
+library(tidyverse)
+data_class <- data [,-1] %>% 
+                       mutate(loss_rate = 
+                             case_when(loss_rate >= 0.4 ~ 'serious',
+                             loss_rate < 0.4 ~ 'normal')) %>% 
+                       rename(loss_degree=loss_rate)
+head(data_class)
+```
+
+visualize and select features by estimating their importance
+
+```{r}
+x = as.matrix(data_class[, 1:11])
+y = as.factor(data_class$loss_degree)
+
+featurePlot(x, y, plot = "box",
+            strip=strip.custom(par.strip.text=list(cex=.7)),
+            scales = list(x = list(relation = "free"), 
+                          y = list(relation="free")))
+```
+
+```{r}
+subsets <- c(1:5, 8, 11)
+ctrl <- rfeControl(functions = rfFuncs, #random forest algorithem
+                   method = "repeatedcv",
+                   repeats = 5,
+                   verbose = FALSE)
+ImProfile <- rfe(x, y, 
+               sizes=subsets, 
+               rfeControl=ctrl)# run the RFE algorithm
+print(ImProfile)
+```
+
+```{r}
+predictors(ImProfile)# list the chosen features
+plot(ImProfile, type=c("g", "o"))
+```
+
+Train and tune models 
+
+```{r}
+set.seed(1234)
+train_idx <- createDataPartition(data_class$loss_degree, p=0.75, list=FALSE)
+training <- data_class[train_idx,]
+test <- data_class[-train_idx,]
+rf_fit <- train(as.factor(loss_degree) ~ IA + PA + CA + Q + G, 
+                data = training, 
+                method = "rf")
+rf_fit
+plot(rf_fit)
+rf_pred <- predict(rf_fit, test)#evalutating model performance
+rf_pred
+confusionMatrix(reference = as.factor(test$loss_degree), 
+                data = rf_pred,
+                mode = "everything")
+```
+
+set uneLength for better model performance
+
+```{r}
+  ctrl <- trainControl(
+  method = 'cv',                  
+  number = 5,                     
+  savePredictions = 'final',
+  classProbs = T,                  
+  summaryFunction=twoClassSummary) 
+
+rf_fit <- train(as.factor(loss_degree) ~., #optimize mtry with tuneLength
+                data = training, 
+                method = "rf", 
+                tuneLength = 5,
+                trControl = ctrl,
+                verbose = FALSE
+)
+
+rf_pred <- predict(rf_fit, test)#evaluate rf performance
+rf_pred
+confusionMatrix(reference = as.factor(test$loss_degree), 
+                data = rf_pred,
+                mode = "everything")
+
+library(MLeval)
+x <- evalm(rf_fit)
+x$roc
+x$stdres
+```
+
+
+
