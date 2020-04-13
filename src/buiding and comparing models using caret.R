@@ -181,19 +181,24 @@ ctrl <- trainControl(method = "repeatedcv",
 ##==================================================
 ##training multiple models
 set.seed(1234)  
-rpart_fit = train(as.factor(loss_degree) ~.,
+rpart_model = train(as.factor(loss_degree) ~.,
                   data=training, 
                   method='rpart', 
                   tuneLength=15, 
                   trControl = ctrl)
+rf_model = train(as.factor(loss_degree) ~.,
+                    data=training, 
+                    method='rf', 
+                    tuneLength=15, 
+                    trControl = ctrl)
 
-svm_fit = train(as.factor(loss_degree) ~ .,
+svm_model = train(as.factor(loss_degree) ~ .,
                 data=training, 
                 method='svmRadial', 
                 tuneLength=15, 
                 trControl = ctrl)
 
-models_compare <- resamples(list(rpart = rpart_fit, randomForest = rf_fit, SVM= svm_fit))
+models_compare <- resamples(list(rpart = rpart_model, randomForest = rf_model, SVM= svm_model))
 summary(models_compare)
 scales <- list(x=list(relation="free"), y=list(relation="free"))
 bwplot(models_compare, scales=scales)
