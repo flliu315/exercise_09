@@ -4,13 +4,13 @@
 ##select features, split dataset, build and assess the model
 rm(list = ls())
 
-##==========================================
+#==========================================
 #install and load caret package
 install.packages("caret", dependencies = TRUE,
                  INSTALL_opts = '--no-lock')
 library(caret)
 
-##==========================================
+#==========================================
 # Load a dataset
 data <- read.csv("data/npcl11.csv")
 str(data)
